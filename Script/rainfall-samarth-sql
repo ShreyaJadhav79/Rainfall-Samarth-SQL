@@ -1,55 +1,112 @@
--- 🌧️ Project Samarth – Rainfall Q&A System (SQL Prototype)
--- Fellowship: Build for Bharat (Data Science Track)
+-- ====================================================
+-- 🌧️ Rainfall Samarth – SQL Q&A Prototype
+-- Bharat Digital Fellowship 2026 Submission
 -- Created by: Shreya Jadhav
--- Goal: Compare rainfall trends between Indian states using open data from data.gov.in
+-- Purpose: Analyze rainfall data from data.gov.in to answer state-wise rainfall questions
+-- ====================================================
 
--- Step 1: Create rainfall table
-CREATE TABLE rainfall_data (
+-- ====================================================
+-- 1️⃣ Create the table (only if it doesn't exist)
+CREATE TABLE IF NOT EXISTS rainfall_data (
     State VARCHAR(50),
     Year INT,
     Month VARCHAR(20),
     Rainfall_mm FLOAT
 );
 
--- Step 2: Insert sample rainfall data (based on IMD rainfall dataset format)
-INSERT INTO rainfall_data (State, Year, Month, Rainfall_mm) VALUES
-('Maharashtra', 2018, 'June', 215.6),
-('Maharashtra', 2018, 'July', 450.3),
-('Maharashtra', 2019, 'June', 198.2),
-('Maharashtra', 2019, 'July', 422.6),
-('Gujarat', 2018, 'June', 180.4),
-('Gujarat', 2018, 'July', 375.8),
-('Gujarat', 2019, 'June', 165.9),
-('Gujarat', 2019, 'July', 358.1),
-('Karnataka', 2018, 'June', 230.2),
-('Karnataka', 2018, 'July', 460.8),
-('Karnataka', 2019, 'June', 205.4),
-('Karnataka', 2019, 'July', 440.1);
-
--- Step 3: Compare average rainfall between states (2018–2019)
+-- ====================================================
+-- 2️⃣ Compare average rainfall between two states for a given period
+-- Example: Maharashtra vs Karnataka (2018–2019)
 SELECT 
     State,
     ROUND(AVG(Rainfall_mm), 2) AS Average_Rainfall
 FROM rainfall_data
-WHERE Year BETWEEN 2018 AND 2019
+WHERE State IN ('Maharashtra', 'Karnataka')
+  AND Year BETWEEN 2018 AND 2019
 GROUP BY State
 ORDER BY Average_Rainfall DESC;
 
--- Step 4: Find the month with highest rainfall in a state
-SELECT 
-    Year, 
-    Month, 
-    Rainfall_mm
+-- ====================================================
+-- 3️⃣ Top months with highest rainfall per state (example: top 2)
+WITH RankedRainfall AS (
+    SELECT
+        State,
+        Year,
+        Month,
+        Rainfall_mm,
+        ROW_NUMBER() OVER (PARTITION BY State ORDER BY Rainfall_mm DESC) AS rn
+    FROM rainfall_data
+)
+SELECT State, Year, Month, Rainfall_mm
+FROM RankedRainfall
+WHERE rn <= 2
+ORDER BY State, Rainfall_mm DESC;
+
+-- ====================================================
+-- 4️⃣ Find month/year with highest rainfall for a specific state
+-- Example: Maharashtra
+SELECT Year, Month, Rainfall_mm
 FROM rainfall_data
 WHERE State = 'Maharashtra'
 ORDER BY Rainfall_mm DESC
 LIMIT 1;
 
--- Step 5: Show rainfall trend by year for a state
-SELECT 
-    Year,
-    ROUND(AVG(Rainfall_mm), 2) AS Avg_Rainfall
+-- ====================================================
+-- 5️⃣ Find month/year with lowest rainfall for a specific state
+-- Example: Gujarat
+SELECT Year, Month, Rainfall_mm
 FROM rainfall_data
 WHERE State = 'Gujarat'
+ORDER BY Rainfall_mm ASC
+LIMIT 1;
+
+-- ====================================================
+-- 6️⃣ Yearly rainfall trend for a state
+-- Example: Maharashtra
+SELECT Year, ROUND(AVG(Rainfall_mm), 2) AS Avg_Rainfall
+FROM rainfall_data
+WHERE State = 'Maharashtra'
 GROUP BY Year
 ORDER BY Year ASC;
+
+-- ====================================================
+-- 7️⃣ Template query for policy questions
+-- Compare rainfall between two states for last N years
+-- Replace 'State_X' and 'State_Y' with actual state names
+SELECT 
+    State,
+    ROUND(AVG(Rainfall_mm), 2) AS Avg_Rainfall
+FROM rainfall_data
+WHERE State IN ('State_X', 'State_Y')  -- Replace as needed
+  AND Year BETWEEN 2018 AND 2019      -- Replace N years
+GROUP BY State;
+
+-- ====================================================
+-- 8️⃣ Monthly rainfall comparison between two states
+-- Replace 'State_X' and 'State_Y' with actual states
+SELECT 
+    rd1.Month,
+    ROUND(rd1.Rainfall_mm,2) AS State_X_Rainfall,
+    ROUND(rd2.Rainfall_mm,2) AS State_Y_Rainfall
+FROM rainfall_data rd1
+JOIN rainfall_data rd2
+    ON rd1.Month = rd2.Month AND rd1.Year = rd2.Year
+WHERE rd1.State = 'Maharashtra'   -- State_X
+  AND rd2.State = 'Karnataka'     -- State_Y
+ORDER BY rd1.Year, rd1.Month;
+
+-- ====================================================
+-- 9️⃣ Top 3 months with highest rainfall overall
+SELECT State, Year, Month, Rainfall_mm
+FROM rainfall_data
+ORDER BY Rainfall_mm DESC
+LIMIT 3;
+
+-- ====================================================
+-- 🔹 Trend for multiple states over years
+-- Replace states as needed
+SELECT State, Year, ROUND(AVG(Rainfall_mm),2) AS Avg_Rainfall
+FROM rainfall_data
+WHERE State IN ('Maharashtra','Karnataka','Gujarat')
+GROUP BY State, Year
+ORDER BY State, Year;
